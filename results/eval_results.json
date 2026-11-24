@@ -1,0 +1,35 @@
+{
+  "examples": 1000,
+  "bleu": 5.05,
+  "baseline_name_only_bleu": 0.07,
+  "rougeL": 0.3547,
+  "baseline_name_only_rougeL": 0.2515,
+  "avg_confidence": 0.5205,
+  "confidence_vs_rougeL_correlation": 0.301,
+  "confidence_levels": {
+    "High >=": 0.6,
+    "Medium >=": 0.35,
+    "High": {
+      "count": 196,
+      "percentage": 19.6,
+      "avg_rougeL": 0.4481,
+      "avg_confidence": 0.6559
+    },
+    "Medium": {
+      "count": 786,
+      "percentage": 78.6,
+      "avg_rougeL": 0.3348,
+      "avg_confidence": 0.4913
+    },
+    "Low": {
+      "count": 18,
+      "percentage": 1.8,
+      "avg_rougeL": 0.2065,
+      "avg_confidence": 0.3223
+    }
+  },
+  "suggested_cutoffs_from_thirds": [
+    0.478,
+    0.554
+  ]
+}

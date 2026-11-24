@@ -1,0 +1,10 @@
+.venv/
+.env
+corrections.db*
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+models/
+data/
+*.zip
