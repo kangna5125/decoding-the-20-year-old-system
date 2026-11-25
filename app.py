@@ -4,6 +4,8 @@ Streamlit application entry point. Run with: streamlit run app.py
 """
 import json
 import os
+from typing import Optional
+
 import streamlit as st
 
 import config
@@ -194,11 +196,12 @@ ex = load_explainer(MODEL_DIR, ACTIVE_DB_PATH)
 studio = ExplanationStudio(ex)
 
 # Automatic Model Detection Initialization
-if is_api_key_configured() and "auto_model_init" not in st.session_state:
+if is_api_key_configured() and ("auto_model_init" not in st.session_state or not st.session_state.get("active_model_name")):
     sel = auto_select_best_model()
-    st.session_state.auto_model_init = True
-    st.session_state.active_model_name = sel.get("model")
-    st.session_state.available_models = sel.get("available_models", [])
+    if sel.get("model"):
+        st.session_state.auto_model_init = True
+        st.session_state.active_model_name = sel.get("model")
+        st.session_state.available_models = sel.get("available_models", [])
 
 
 def render_confidence_gauge(score, level):
@@ -247,11 +250,27 @@ def load_sample():
             st.session_state.result = None
 
 
+def handle_analyze_code(content: str, language: str):
+    st.session_state.nav_module = "2. Code Analyzer"
+    st.session_state.pending_nav = "2. Code Analyzer"
+    st.session_state.code_input = content
+    st.session_state.pending_code_input = content
+    st.session_state.result_code = content
+    st.session_state.result_lang = language
+    st.session_state.detected_lang = language
+    st.session_state.result = None
+
+
 # =====================================================================
 # SIDEBAR NAVIGATION (Eight modules)
 # =====================================================================
 st.sidebar.markdown(f"### {PROJECT_NAME}")
 st.sidebar.caption(PROJECT_TAGLINE)
+
+if "pending_nav" in st.session_state:
+    st.session_state.nav_module = st.session_state.pop("pending_nav")
+if "pending_code_input" in st.session_state:
+    st.session_state.code_input = st.session_state.pop("pending_code_input")
 
 MODULES = [
     "1. Dashboard",
@@ -264,10 +283,12 @@ MODULES = [
     "8. Knowledge Base & Model Report"
 ]
 
+if "nav_module" not in st.session_state:
+    st.session_state.nav_module = "2. Code Analyzer"
+
 selected_module = st.sidebar.radio(
     "Modules",
     MODULES,
-    index=1,
     key="nav_module"
 )
 
@@ -275,7 +296,7 @@ st.sidebar.markdown("---")
 st.sidebar.metric("Saved corrections", ex.store.count())
 st.sidebar.caption(f"Backend DB: `{os.path.basename(ACTIVE_DB_PATH)}`")
 
-curr_active_model = get_active_model()
+curr_active_model = st.session_state.get("active_model_name") or get_active_model()
 llm_status = f"✅ Active ({curr_active_model})" if is_api_key_configured() and curr_active_model else ("✅ Key detected" if is_api_key_configured() else "⚠️ Not configured")
 st.sidebar.caption(f"LLM Status: **{llm_status}**")
 
@@ -744,12 +765,12 @@ elif selected_module == "5. Repository Intelligence":
                 with col_f1:
                     st.write(f"📄 **{f['rel_path']}** (`{f['language']}`, {f['loc']} LOC)")
                 with col_f2:
-                    if st.button("Analyze Code", key=f"btn_an_{f['rel_path']}"):
-                        st.session_state.code_input = f["content"]
-                        st.session_state.result_code = f["content"]
-                        st.session_state.result_lang = f["language"]
-                        st.session_state.nav_module = "2. Code Analyzer"
-                        st.rerun()
+                    st.button(
+                        "Analyze Code",
+                        key=f"btn_an_{f['rel_path']}",
+                        on_click=handle_analyze_code,
+                        args=(f["content"], f["language"]),
+                    )
 
         with tab_symbols:
             st.subheader("Symbol & Function Search")
