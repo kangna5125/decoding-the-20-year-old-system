@@ -75,7 +75,9 @@ def filter_and_rank_models(model_records: List[Dict[str, Any]]) -> List[str]:
     """Filter to text-generation Gemini models and rank by quality and stability."""
     excluded_keywords = [
         "embedding", "embed", "imagen", "image", "aqa", "tts",
-        "whisper", "audio", "realtime", "live", "vision-only", "robotics"
+        "whisper", "audio", "realtime", "live", "vision-only", "robotics",
+        "transcribe", "computer-use", "customtools", "banana", "lyria",
+        "clip", "argon", "carbon", "hydrogen", "neon"
     ]
     candidates = []
 
@@ -116,7 +118,7 @@ def fetch_available_gemini_models() -> List[str]:
 
     try:
         req = urllib.request.Request(url, headers={"Content-Type": "application/json"}, method="GET")
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             models_raw = data.get("models", [])
             return filter_and_rank_models(models_raw)
@@ -124,7 +126,7 @@ def fetch_available_gemini_models() -> List[str]:
         return []
 
 
-def test_gemini_connection(model_name: str) -> Tuple[bool, str]:
+def test_gemini_connection(model_name: str, timeout: float = 3.5) -> Tuple[bool, str]:
     """Test a specific Gemini model candidate with a minimal ping payload."""
     if not is_api_key_configured():
         return False, "API key not configured. Please add GEMINI_API_KEY to your .env file."
@@ -151,7 +153,7 @@ def test_gemini_connection(model_name: str) -> Tuple[bool, str]:
             headers={"Content-Type": "application/json"},
             method="POST"
         )
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             if data.get("candidates"):
                 return True, f"Connection successful using {model_name}."
@@ -166,6 +168,16 @@ def test_gemini_connection(model_name: str) -> Tuple[bool, str]:
         return False, f"HTTP Error {e.code}: {e.reason}"
     except Exception as e:
         return False, f"Connection error: {str(e)}"
+
+
+# Standard candidates fallback if models.list endpoint fails or times out
+STANDARD_FALLBACK_CANDIDATES: List[str] = [
+    "gemini-2.5-flash",
+    "gemini-2.5-pro",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro"
+]
 
 
 def auto_select_best_model(force_refresh: bool = False) -> Dict[str, Any]:
@@ -192,12 +204,8 @@ def auto_select_best_model(force_refresh: bool = False) -> Dict[str, Any]:
 
     ranked = fetch_available_gemini_models()
     if not ranked:
-        return {
-            "success": False,
-            "model": None,
-            "available_models": [],
-            "message": "Could not retrieve models list from API."
-        }
+        # Fall back to standard known text candidate models
+        ranked = list(STANDARD_FALLBACK_CANDIDATES)
 
     _RANKED_MODELS_CACHE = ranked
 
