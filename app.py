@@ -300,9 +300,6 @@ curr_active_model = st.session_state.get("active_model_name") or get_active_mode
 llm_status = f"✅ Active ({curr_active_model})" if is_api_key_configured() and curr_active_model else ("✅ Key detected" if is_api_key_configured() else "⚠️ Not configured")
 st.sidebar.caption(f"LLM Status: **{llm_status}**")
 
-st.sidebar.markdown("---")
-st.sidebar.info(PRIVACY_NOTE)
-
 
 # =====================================================================
 # MODULE 1: DASHBOARD
